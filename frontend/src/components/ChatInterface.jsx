@@ -1,22 +1,26 @@
 import React, { useState, useRef, useEffect } from 'react'
 import axios from 'axios'
+import { Send, Loader } from 'lucide-react'
 import './ChatInterface.css'
 
 const API_BASE_URL = 'http://localhost:8000'
 
-function ChatInterface({ sessionId, fileInfo, onNewAnalysis }) {
+function ChatInterface({ sessionId, fileInfo, onNewChat }) {
   const [messages, setMessages] = useState([])
   const [input, setInput] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const messagesEndRef = useRef(null)
+  const messagesContainerRef = useRef(null)
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+    setTimeout(() => {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+    }, 0)
   }
 
   useEffect(() => {
     scrollToBottom()
-  }, [messages])
+  }, [messages, isLoading])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -53,9 +57,9 @@ function ChatInterface({ sessionId, fileInfo, onNewAnalysis }) {
 
   const exampleQuestions = [
     'What is the mean of the numeric columns?',
-    'Show me the total sales',
+    'Show me key statistics',
     'What are the columns in this dataset?',
-    'Calculate the average of all numeric columns',
+    'Give me a data summary',
   ]
 
   const handleExampleClick = (question) => {
@@ -63,66 +67,93 @@ function ChatInterface({ sessionId, fileInfo, onNewAnalysis }) {
   }
 
   return (
-    <div className="chat-container">
-      <div className="chat-header">
-        <div className="chat-header-content">
-          <div>
-            <h2>💬 Ask Questions</h2>
-            <p>Ask questions about your uploaded data</p>
-          </div>
-          {onNewAnalysis && (
-            <button
-              className="new-analysis-header-button"
-              onClick={onNewAnalysis}
-              title="Start new analysis"
-            >
-              🔄 New Analysis
-            </button>
-          )}
+    <div className="chat-interface-wrapper">
+      {/* File Info Bar */}
+      <div className="file-info-bar">
+        <div className="file-info-item">
+          <span className="file-name">{fileInfo?.fileName || 'Untitled'}</span>
+          <span className="file-stats">
+            {fileInfo?.rows} rows • {fileInfo?.columns?.length} columns
+          </span>
         </div>
+        <button className="file-actions-btn" onClick={onNewChat}>
+          + New Chat
+        </button>
       </div>
 
-      <div className="chat-messages">
+      {/* Messages Container */}
+      <div className="messages-container" ref={messagesContainerRef}>
         {messages.length === 0 && (
-          <div className="welcome-message">
-            <p>👋 Welcome! I'm your CSV Data Analysis Agent.</p>
-            <p className="welcome-subtext">Ask me questions about your data or try:</p>
-            <div className="example-questions">
+          <div className="welcome-section">
+            <div className="welcome-header">
+              <h2>Ask anything about your data</h2>
+              <p>Get instant insights with natural language queries</p>
+            </div>
+
+            <div className="suggested-prompts">
+              <p className="prompts-title">Try asking:</p>
               {exampleQuestions.map((q, idx) => (
                 <button
                   key={idx}
-                  className="example-question"
+                  className="prompt-button"
                   onClick={() => handleExampleClick(q)}
                 >
+                  <span className="prompt-icon">→</span>
                   {q}
                 </button>
               ))}
             </div>
-            <button
-              className="example-question help-question"
-              onClick={() => handleExampleClick("What can you help me with?")}
-            >
-              What can you help me with?
-            </button>
+
+            <div className="file-summary">
+              <h3>File Summary</h3>
+              <div className="summary-grid">
+                <div className="summary-item">
+                  <span className="summary-label">Rows</span>
+                  <span className="summary-value">{fileInfo?.rows}</span>
+                </div>
+                <div className="summary-item">
+                  <span className="summary-label">Columns</span>
+                  <span className="summary-value">{fileInfo?.columns?.length}</span>
+                </div>
+              </div>
+              <div className="columns-display">
+                <p className="columns-title">Columns:</p>
+                <div className="columns-list">
+                  {fileInfo?.columns?.map((col, idx) => (
+                    <span key={idx} className="column-badge">
+                      {col}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </div>
           </div>
         )}
 
         {messages.map((msg, idx) => (
-          <div key={idx} className={`message ${msg.role}`}>
-            <div className="message-content">
-              <div className="message-role">
-                {msg.role === 'user' ? '👤 You' : '🤖 Assistant'}
+          <div key={idx} className={`message-wrapper ${msg.role}`}>
+            <div className={`message ${msg.role}`}>
+              <div className="message-avatar">
+                {msg.role === 'user' ? '👤' : '🤖'}
               </div>
-              <div className="message-text">{msg.content}</div>
+              <div className="message-bubble">
+                <p className="message-text">{msg.content}</p>
+              </div>
             </div>
           </div>
         ))}
 
         {isLoading && (
-          <div className="message assistant">
-            <div className="message-content">
-              <div className="message-role">🤖 Assistant</div>
-              <div className="message-text loading">Thinking...</div>
+          <div className="message-wrapper assistant">
+            <div className="message assistant">
+              <div className="message-avatar">🤖</div>
+              <div className="message-bubble loading">
+                <div className="typing-indicator">
+                  <span></span>
+                  <span></span>
+                  <span></span>
+                </div>
+              </div>
             </div>
           </div>
         )}
@@ -130,22 +161,31 @@ function ChatInterface({ sessionId, fileInfo, onNewAnalysis }) {
         <div ref={messagesEndRef} />
       </div>
 
-      <form className="chat-input-form" onSubmit={handleSubmit}>
-        <input
-          type="text"
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          placeholder="Ask a question about your data..."
-          className="chat-input"
-          disabled={isLoading}
-        />
-        <button
-          type="submit"
-          className="send-button"
-          disabled={isLoading || !input.trim()}
-        >
-          {isLoading ? '⏳' : '➤'}
-        </button>
+      {/* Input Form */}
+      <form className="input-form" onSubmit={handleSubmit}>
+        <div className="input-wrapper">
+          <input
+            type="text"
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            placeholder="Message CSV Chat..."
+            className="message-input"
+            disabled={isLoading}
+            autoFocus
+          />
+          <button
+            type="submit"
+            className={`send-btn ${isLoading ? 'loading' : ''}`}
+            disabled={isLoading || !input.trim()}
+          >
+            {isLoading ? (
+              <Loader size={20} className="loader-icon" />
+            ) : (
+              <Send size={20} />
+            )}
+          </button>
+        </div>
+        <p className="input-hint">CSV Chat can make mistakes. Consider checking important information.</p>
       </form>
     </div>
   )
