@@ -34,8 +34,8 @@ function LandingPage({ onEnterChat }) {
         {/* Header */}
         <div className="landing-header">
           <div className="logo">
-            <div className="logo-icon">📊</div>
-            <h1>CSV Chat</h1>
+            {/* <div className="logo-icon">📊</div> */}
+            <h1>Chat Bot</h1>
           </div>
           <p className="tagline">Analyze your data with conversational AI</p>
         </div>

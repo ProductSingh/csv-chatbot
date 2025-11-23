@@ -1,143 +1,109 @@
-# 📊 CSV Chatbot Web App
+# CSV Chatbot
 
-A modern web application that allows users to upload CSV files and ask natural language questions about their data using an AI agent powered by Google's Agent Development Kit (ADK).
+A web application that lets you upload CSV files and chat with your data using AI. Ask questions in plain English and get instant answers.
 
-## ✨ Features
+## Features
 
-- 📤 **CSV File Upload**: Drag-and-drop or browse to upload CSV files
-- 💬 **Natural Language Queries**: Ask questions about your data in plain English
-- 🤖 **AI-Powered Analysis**: Uses Google's Gemini AI with custom tools for dataframe operations
-- 📈 **Data Analysis Tools**: Calculate means, averages, sums, filter by date ranges, group by month/category, and more
-- 🎨 **Modern UI**: Beautiful, responsive React frontend
-- 🔄 **Session Management**: Maintain conversation context across queries
-- 🛡️ **Guardrails**: Agent stays focused on CSV data analysis
+- **Upload CSV Files**: Simply upload your CSV file to start
+- **Ask Questions**: Write your questions in plain English, no SQL needed
+- **Get Instant Results**: AI analyzes your data and gives answers
+- **Chat History**: All your conversations are saved, you can go back and check anytime
+- **Clean Design**: Simple, easy-to-use interface
+- **Data Safety**: Your data stays private, not shared anywhere
 
-## 🚀 Quick Start
+## How to Set Up
 
-### Prerequisites
+### What You Need
 
-- Python 3.8+
-- Node.js 16+
-- Google API Key ([Get one here](https://makersuite.google.com/app/apikey))
+- Python 3.8 or higher
+- Node.js 16 or higher  
+- Google API Key (free) - [Get it here](https://makersuite.google.com/app/apikey)
+- PostgreSQL database (for saving your chats)
 
-### Installation
+### Installation Steps
 
-1. **Clone the repository**
+1. **Get the code**
    ```bash
-   git clone <your-repo-url>
-   cd "Uptio Project"
+   git clone <repository-url>
+   cd csv-chatbot
    ```
 
-2. **Backend Setup**
+2. **Set up database** (run this first, only once)
    ```bash
-   cd backend
-   python3 -m venv venv
-   source venv/bin/activate  # On Windows: venv\Scripts\activate
-   pip install -r requirements.txt
+   bash postgres_setup.sh
    ```
 
-3. **Frontend Setup**
+3. **Set up everything else** (backend + frontend)
    ```bash
-   cd ../frontend
-   npm install
+   bash setup.sh
    ```
 
-4. **Environment Variables**
-   ```bash
-   cd ../backend
-   cp ../.env.example .env
-   # Edit .env and add your GOOGLE_API_KEY
-   ```
+4. **Add your Google API Key**
+   - Open `backend/.env`
+   - Add your API key there
+   - Save the file
 
-5. **Run the Application**
-
-   **Terminal 1 (Backend)**:
+5. **Start the backend** (Terminal 1)
    ```bash
    cd backend
    source venv/bin/activate
    python main.py
    ```
 
-   **Terminal 2 (Frontend)**:
+6. **Start the frontend** (Terminal 2)
    ```bash
    cd frontend
    npm run dev
    ```
 
-6. **Open Browser**
-   - Frontend: http://localhost:3000
-   - Backend API: http://localhost:8000
+7. **Open in browser**
+   - Go to: `http://localhost:3004`
+   - Enter your name
+   - Upload your CSV file
+   - Start asking questions!
 
-## 📖 Documentation
+## What Can You Ask?
 
-For comprehensive documentation including:
-- Project structure explanation
-- Tech stack details
-- Where to make changes
-- Troubleshooting guide
+- "What are the average sales?"
+- "Show me total revenue"
+- "How many rows in this file?"
+- "Group data by month"
+- "What columns do we have?"
+- "Filter where sales > 1000"
 
-See [PROJECT_DOCUMENTATION.md](./PROJECT_DOCUMENTATION.md)
+## Tech Used
 
-## 🎯 Example Queries
+- **Frontend**: React, Vite, modern UI
+- **Backend**: Python, FastAPI, Google Gemini AI
+- **Database**: PostgreSQL (stores your chats)
 
-- "What can you help me with?"
-- "What is the mean of the sales column?"
-- "Calculate the total revenue"
-- "Show me units sold by month"
-- "What are the columns in this dataset?"
-- "Give me sales by category"
+## Troubleshooting
 
-## 🛠 Tech Stack
+**API Key not working?**
+- Check `backend/.env` file
+- Make sure you copied the key correctly
+- No quotes needed around the key
 
-**Frontend**: React 18, Vite, Axios  
-**Backend**: FastAPI, Google ADK, Gemini AI, Pandas  
-**AI**: Google Agent Development Kit (ADK), Gemini 2.0 Flash
+**Port already in use?**
+- Change the port in the config file, or
+- Kill the process using that port
 
-## 📁 Project Structure
+**Module missing?**
+- Run `pip install -r requirements.txt` in backend folder
+- Run `npm install` in frontend folder
 
-```
-Uptio Project/
-├── backend/          # FastAPI backend with AI agent
-├── frontend/         # React frontend
-├── README.md         # This file
-└── PROJECT_DOCUMENTATION.md  # Comprehensive docs
-```
+**Database issues?**
+- Run `bash postgres_setup.sh` again
+- Make sure PostgreSQL is running
 
-## 🔧 Configuration
+## License
 
-### Backend
-- API Key: Set `GOOGLE_API_KEY` in `backend/.env`
-- Port: Default 8000 (change in `backend/main.py`)
+MIT - You can use this for anything
 
-### Frontend
-- API URL: Default `http://localhost:8000` (change in `frontend/src/App.jsx`)
-- Port: Default 3000 (change in `frontend/vite.config.js`)
+## Questions?
 
-## 🐛 Troubleshooting
-
-### Common Issues
-
-**API Key Error**: Ensure `GOOGLE_API_KEY` is set in `backend/.env` (no quotes)
-
-**Port Already in Use**: Change port or kill existing process
-
-**Module Not Found**: Reinstall dependencies (`pip install -r requirements.txt` or `npm install`)
-
-**Session Errors**: Check session handling in `backend/agent.py`
-
-See [PROJECT_DOCUMENTATION.md](./PROJECT_DOCUMENTATION.md) for detailed troubleshooting.
-
-## 📝 License
-
-MIT
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Submit a pull request
+Check the code files or create an issue in the repository.
 
 ---
 
-**For detailed documentation, see [PROJECT_DOCUMENTATION.md](./PROJECT_DOCUMENTATION.md)**
+Happy chatting with your data! 📊

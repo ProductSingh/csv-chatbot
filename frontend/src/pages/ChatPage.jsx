@@ -1,5 +1,5 @@
-import React, { useState } from 'react'
-import { Plus, LogOut, Menu, X } from 'lucide-react'
+import React, { useState, useEffect } from 'react'
+import { Plus, LogOut, Menu, X, Trash2 } from 'lucide-react'
 import ChatInterface from '../components/ChatInterface'
 import FileUpload from '../components/FileUpload'
 import '../styles/ChatPage.css'
@@ -8,9 +8,29 @@ function ChatPage({ userName, onLogout }) {
   const [sessionId, setSessionId] = useState(null)
   const [fileInfo, setFileInfo] = useState(null)
   const [isLoading, setIsLoading] = useState(false)
-  const [chatHistory, setChatHistory] = useState([])
+  const [sessions, setSessions] = useState([])
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [showUploadModal, setShowUploadModal] = useState(false)
+  const [showFileDetails, setShowFileDetails] = useState(false)
+
+  // Load sessions on component mount
+  useEffect(() => {
+    loadSessions()
+  }, [])
+
+  const loadSessions = async () => {
+    try {
+      const response = await fetch('http://localhost:8000/sessions', {
+        credentials: 'include',
+      })
+      if (response.ok) {
+        const data = await response.json()
+        setSessions(data.sessions || [])
+      }
+    } catch (error) {
+      console.error('Error loading sessions:', error)
+    }
+  }
 
   const handleFileUpload = async (file, existingSessionId = null) => {
     setIsLoading(true)
@@ -42,6 +62,9 @@ function ChatPage({ userName, onLogout }) {
         fileName: file.name,
       })
       setShowUploadModal(false)
+      
+      // Reload sessions to show the new upload
+      loadSessions()
     } catch (error) {
       console.error('Error uploading file:', error)
       alert(`Failed to upload file: ${error.message}`)
@@ -51,10 +74,48 @@ function ChatPage({ userName, onLogout }) {
   }
 
   const handleNewChat = () => {
-    setChatHistory([])
     setSessionId(null)
     setFileInfo(null)
     setShowUploadModal(true)
+  }
+
+  const handleSelectSession = async (session) => {
+    try {
+      setSessionId(session.id)
+      setFileInfo({
+        rows: session.metadata?.rows || 0,
+        columns: session.metadata?.columns || [],
+        fileName: session.filename,
+      })
+      // Keep sidebar open on desktop, only close on mobile
+      if (window.innerWidth <= 768) {
+        setSidebarOpen(false)
+      }
+    } catch (error) {
+      console.error('Error selecting session:', error)
+    }
+  }
+
+  const handleDeleteSession = async (sessionId, e) => {
+    e.stopPropagation()
+    if (window.confirm('Are you sure you want to delete this session?')) {
+      try {
+        const response = await fetch(`http://localhost:8000/session/${sessionId}`, {
+          method: 'DELETE',
+          credentials: 'include',
+        })
+        if (response.ok) {
+          if (sessionId === sessionId) {
+            setSessionId(null)
+            setFileInfo(null)
+          }
+          loadSessions()
+        }
+      } catch (error) {
+        console.error('Error deleting session:', error)
+        alert('Failed to delete session')
+      }
+    }
   }
 
   const handleLogout = () => {
@@ -83,14 +144,31 @@ function ChatPage({ userName, onLogout }) {
         </button>
 
         <div className="sidebar-content">
+          {/* Chat History */}
           <div className="chat-history">
-            <h3>History</h3>
-            {chatHistory.length === 0 ? (
+            <h3>Chat History</h3>
+            {sessions.length === 0 ? (
               <p className="empty-history">No chats yet</p>
             ) : (
-              chatHistory.map((chat, idx) => (
-                <div key={idx} className="history-item">
-                  <span className="history-item-text">{chat.title}</span>
+              sessions.map((session) => (
+                <div
+                  key={session.id}
+                  className={`history-item ${sessionId === session.id ? 'active' : ''}`}
+                  onClick={() => handleSelectSession(session)}
+                >
+                  <div className="history-item-content">
+                    <span className="history-item-title">{session.filename}</span>
+                    <span className="history-item-meta">
+                      {session.metadata?.rows || 0} rows • {session.message_count} messages
+                    </span>
+                  </div>
+                  <button
+                    className="history-item-delete"
+                    onClick={(e) => handleDeleteSession(session.id, e)}
+                    title="Delete this session"
+                  >
+                    <Trash2 size={16} />
+                  </button>
                 </div>
               ))
             )}
@@ -117,7 +195,7 @@ function ChatPage({ userName, onLogout }) {
           >
             <Menu size={24} />
           </button>
-          <h1 className="page-title">CSV Data Analysis</h1>
+          <h1 className="page-title">CSV Chatbot</h1>
           <div className="header-spacer"></div>
         </div>
 
@@ -142,13 +220,82 @@ function ChatPage({ userName, onLogout }) {
           </div>
         )}
 
+        {/* File Details Modal */}
+        {showFileDetails && fileInfo && (
+          <div className="modal-overlay" onClick={() => setShowFileDetails(false)}>
+            <div className="file-details-modal" onClick={(e) => e.stopPropagation()}>
+              <div className="modal-header">
+                <h2>📄 File Details</h2>
+                <button
+                  className="modal-close"
+                  onClick={() => setShowFileDetails(false)}
+                >
+                  ✕
+                </button>
+              </div>
+              <div className="file-details-content">
+                <div className="detail-section">
+                  <h3>File Name</h3>
+                  <p className="detail-value">{fileInfo.fileName}</p>
+                </div>
+
+                <div className="detail-section">
+                  <h3>Statistics</h3>
+                  <div className="stats-grid">
+                    <div className="stat-card">
+                      <span className="stat-label">Rows</span>
+                      <span className="stat-number">{fileInfo.rows}</span>
+                    </div>
+                    <div className="stat-card">
+                      <span className="stat-label">Columns</span>
+                      <span className="stat-number">{fileInfo.columns?.length || 0}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {fileInfo.columns && fileInfo.columns.length > 0 && (
+                  <div className="detail-section">
+                    <h3>Columns ({fileInfo.columns.length})</h3>
+                    <div className="columns-list-detailed">
+                      {fileInfo.columns.map((col, idx) => (
+                        <div key={idx} className="column-item">
+                          <span className="column-number">{idx + 1}</span>
+                          <span className="column-name">{col}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <div className="modal-actions">
+                  <button 
+                    className="action-btn replace-btn"
+                    onClick={() => {
+                      setShowFileDetails(false)
+                      setShowUploadModal(true)
+                    }}
+                  >
+                    🔄 Replace CSV
+                  </button>
+                  <button 
+                    className="action-btn close-btn"
+                    onClick={() => setShowFileDetails(false)}
+                  >
+                    Close
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Chat Content */}
         <div className="chat-content">
           {!sessionId ? (
             <div className="empty-state">
               <div className="empty-state-icon">📊</div>
-              <h2>No file uploaded yet</h2>
-              <p>Upload a CSV file to start analyzing your data</p>
+              <h2>No file selected</h2>
+              <p>Upload a CSV file or select one from history to start analyzing</p>
               <button className="upload-btn" onClick={() => setShowUploadModal(true)}>
                 <Plus size={20} />
                 Upload File
@@ -159,6 +306,8 @@ function ChatPage({ userName, onLogout }) {
               sessionId={sessionId}
               fileInfo={fileInfo}
               onNewChat={handleNewChat}
+              onFileDetailsClick={() => setShowFileDetails(true)}
+              onReplaceCSV={() => setShowUploadModal(true)}
             />
           )}
         </div>

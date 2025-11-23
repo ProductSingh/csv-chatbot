@@ -5,12 +5,45 @@ import './ChatInterface.css'
 
 const API_BASE_URL = 'http://localhost:8000'
 
-function ChatInterface({ sessionId, fileInfo, onNewChat }) {
+function ChatInterface({ sessionId, fileInfo, onNewChat, onFileDetailsClick, onReplaceCSV }) {
   const [messages, setMessages] = useState([])
   const [input, setInput] = useState('')
   const [isLoading, setIsLoading] = useState(false)
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false)
   const messagesEndRef = useRef(null)
   const messagesContainerRef = useRef(null)
+
+  // Load chat history when sessionId changes
+  useEffect(() => {
+    if (sessionId) {
+      loadChatHistory()
+    }
+  }, [sessionId])
+
+  const loadChatHistory = async () => {
+    setIsLoadingHistory(true)
+    try {
+      const response = await axios.get(
+        `${API_BASE_URL}/session/${sessionId}/messages`,
+        { headers: { 'credentials': 'include' } }
+      )
+      if (response.data.messages) {
+        // Convert backend format to frontend format
+        const formattedMessages = response.data.messages.map((msg) => ({
+          role: msg.message_type,
+          content: msg.content,
+        }))
+        setMessages(formattedMessages)
+      } else {
+        setMessages([])
+      }
+    } catch (error) {
+      console.error('Error loading chat history:', error)
+      setMessages([])
+    } finally {
+      setIsLoadingHistory(false)
+    }
+  }
 
   const scrollToBottom = () => {
     setTimeout(() => {
@@ -68,6 +101,16 @@ function ChatInterface({ sessionId, fileInfo, onNewChat }) {
 
   return (
     <div className="chat-interface-wrapper">
+      {/* Floating File Info Button */}
+      <button 
+        className="file-info-fab"
+        onClick={onFileDetailsClick}
+        title={`View details: ${fileInfo?.fileName}`}
+      >
+        <span className="fab-icon">📋</span>
+        <span className="fab-label">File</span>
+      </button>
+
       {/* File Info Bar */}
       <div className="file-info-bar">
         <div className="file-info-item">
@@ -83,7 +126,12 @@ function ChatInterface({ sessionId, fileInfo, onNewChat }) {
 
       {/* Messages Container */}
       <div className="messages-container" ref={messagesContainerRef}>
-        {messages.length === 0 && (
+        {isLoadingHistory ? (
+          <div className="loading-history">
+            <div className="spinner"></div>
+            <p>Loading chat history...</p>
+          </div>
+        ) : messages.length === 0 ? (
           <div className="welcome-section">
             <div className="welcome-header">
               <h2>Ask anything about your data</h2>
@@ -128,25 +176,23 @@ function ChatInterface({ sessionId, fileInfo, onNewChat }) {
               </div>
             </div>
           </div>
+        ) : (
+          <>
+            {messages.map((msg, idx) => (
+              <div key={idx} className={`message-wrapper ${msg.role}`}>
+                <div className={`message ${msg.role}`}>
+                  <div className="message-bubble">
+                    <p className="message-text">{msg.content}</p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </>
         )}
-
-        {messages.map((msg, idx) => (
-          <div key={idx} className={`message-wrapper ${msg.role}`}>
-            <div className={`message ${msg.role}`}>
-              <div className="message-avatar">
-                {msg.role === 'user' ? '👤' : '🤖'}
-              </div>
-              <div className="message-bubble">
-                <p className="message-text">{msg.content}</p>
-              </div>
-            </div>
-          </div>
-        ))}
 
         {isLoading && (
           <div className="message-wrapper assistant">
             <div className="message assistant">
-              <div className="message-avatar">🤖</div>
               <div className="message-bubble loading">
                 <div className="typing-indicator">
                   <span></span>
@@ -185,7 +231,7 @@ function ChatInterface({ sessionId, fileInfo, onNewChat }) {
             )}
           </button>
         </div>
-        <p className="input-hint">CSV Chat can make mistakes. Consider checking important information.</p>
+        <p className="input-hint"></p>
       </form>
     </div>
   )
